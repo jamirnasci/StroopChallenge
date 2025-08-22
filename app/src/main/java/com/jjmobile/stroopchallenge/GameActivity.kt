@@ -1,10 +1,14 @@
 package com.jjmobile.stroopchallenge
 
+import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,17 +19,19 @@ import kotlin.random.Random
 import androidx.core.content.edit
 
 class GameActivity : AppCompatActivity() {
-
     private lateinit var targetColor: TextView
     private lateinit var colorText: String
     private lateinit var interval: CountDownTimer
     private lateinit var binding: ActivityGameBinding
     private var pontuacao: Int = 0
-
+    private var countDownInterval = 1000L
+    private var countDownDec = 10
+    private var progressDec = 10
+    private var limitTime = 10000L
+    private var level = 0
     fun checkColor(name: String): Boolean{
         return name == colorText
     }
-
     fun randomName(){
         val index: Int = Random.nextInt(Colors.values.size)
         targetColor.setTextColor(ContextCompat.getColor(applicationContext, Colors.values[index].colorId))
@@ -34,55 +40,86 @@ class GameActivity : AppCompatActivity() {
     fun randomColor(){
         val index: Int = Random.nextInt(Colors.values.size)
         targetColor.text = Colors.values[index].name
+        binding.progressBar.progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this, Colors.values[index].colorId))
         randomName()
     }
 
     fun startInterval(){
-        interval = object : CountDownTimer(10000, 100){
+        interval = object : CountDownTimer(limitTime, countDownInterval){
             override fun onFinish() {
                 binding.progressBar.progress = 0
                 endGameAlert()
             }
 
             override fun onTick(millisUntilFinished: Long) {
-                binding.progressBar.progress = binding.progressBar.progress - 1
+                if(binding.progressBar.progress <= 0){
+                    killEvents()
+                    endGameAlert()
+                }
+                binding.progressBar.setProgress(binding.progressBar.progress - progressDec, true)
             }
 
         }
         interval.start()
     }
 
-    fun goTo(){
-
-    }
-
+    @SuppressLint("MissingInflatedId", "SetTextI18n")
     fun endGameAlert(){
         interval.cancel()
 
+        val view = layoutInflater.inflate(R.layout.end_game_dialog, null)
+        val okBtn = view.findViewById<Button>(R.id.okBtn)
+        val scoreMsg = view.findViewById<TextView>(R.id.scoreMsg)
+        scoreMsg.text = "Your Score $pontuacao"
+        okBtn.setOnClickListener {
+            val endGameIntent = Intent(applicationContext, EndGameActivity::class.java)
+            endGameIntent.putExtra("pontuacao", pontuacao)
+            endGameIntent.putExtra("level", level)
+            startActivity(endGameIntent)
+        }
         MaterialAlertDialogBuilder(this)
-            .setTitle("Fim de Jogo")
-            .setMessage("Sua pontuação foi $pontuacao")
-            .setPositiveButton("OK") { dialog, _ ->
-                val endGameIntent = Intent(applicationContext, EndGameActivity::class.java)
-                endGameIntent.putExtra("pontuacao", pontuacao)
-                startActivity(endGameIntent)
-            }
+            .setView(view)
             .show()
     }
 
     fun nextRound(){
         pontuacao += 10
+        countDownInterval -= countDownDec
         binding.pontuacaoText.text = pontuacao.toString()
         randomColor()
         interval.cancel()
         startInterval()
         binding.progressBar.progress = 100
     }
-
+    fun killEvents(){
+        binding.blueBtn.setOnClickListener(null)
+        binding.redBtn.setOnClickListener(null)
+        binding.greenBtn.setOnClickListener(null)
+        binding.yellowBtn.setOnClickListener(null)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityGameBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        level = intent.getIntExtra("level", 0)
+
+        when(level){
+            0 -> {
+                countDownDec = 10
+                binding.levelText.setTextColor(ContextCompat.getColor(applicationContext,R.color.blue))
+                binding.levelText.text = "Level Easy"
+            }
+            1 -> {
+                countDownDec = 20
+                binding.levelText.setTextColor(ContextCompat.getColor(applicationContext,R.color.yellow100))
+                binding.levelText.text = "Level Medium"
+            }
+            2 -> {
+                countDownDec = 30
+                binding.levelText.setTextColor(ContextCompat.getColor(applicationContext,R.color.red))
+                binding.levelText.text = "Level Hard"
+            }
+        }
         val sharedPreferences = getSharedPreferences("data", MODE_PRIVATE)
         val record: Int = sharedPreferences.getInt("record", 0)
         binding.recordText.text = record.toString()
@@ -96,6 +133,7 @@ class GameActivity : AppCompatActivity() {
             if(result){
                 nextRound()
             }else{
+                killEvents()
                 endGameAlert()
             }
         }
@@ -104,6 +142,7 @@ class GameActivity : AppCompatActivity() {
             if(result){
                 nextRound()
             }else{
+                killEvents()
                 endGameAlert()
             }
         }
@@ -112,6 +151,7 @@ class GameActivity : AppCompatActivity() {
             if(result){
                 nextRound()
             }else{
+                killEvents()
                 endGameAlert()
             }
         }
@@ -120,8 +160,13 @@ class GameActivity : AppCompatActivity() {
             if(result){
                 nextRound()
             }else{
+                killEvents()
                 endGameAlert()
             }
+        }
+        binding.exitGameBtn.setOnClickListener {
+            interval.cancel()
+            finish()
         }
     }
 }
