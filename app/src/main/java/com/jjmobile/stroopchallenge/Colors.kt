@@ -2,7 +2,7 @@ package com.jjmobile.stroopchallenge
 
 class Colors {
     companion object{
-        val values = listOf<Color>(
+        val list = listOf<Color>(
             Color("RED", R.color.red),
             Color("BLUE", R.color.blue),
             Color("GREEN", R.color.green),

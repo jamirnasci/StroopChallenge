@@ -2,6 +2,7 @@ package com.jjmobile.stroopchallenge
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -9,14 +10,29 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.jjmobile.stroopchallenge.ads.EndGameInterstitial
 import com.jjmobile.stroopchallenge.databinding.ActivityEndGameBinding
 
 class EndGameActivity : AppCompatActivity() {
     private lateinit var binding: ActivityEndGameBinding
+
+    private val INTERSTITIAL_ID_TEST = "ca-app-pub-3940256099942544/1033173712"
+    private val INTERSTITIAL_ID = "ca-app-pub-2077187211919243/8828710577"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityEndGameBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        val endGameInterstitial = EndGameInterstitial(applicationContext, INTERSTITIAL_ID, this@EndGameActivity)
+        endGameInterstitial.loadInterstitial()
+        endGameInterstitial.setContentCallBack()
 
         val sharedPreferences = getSharedPreferences("data", MODE_PRIVATE)
         val record: Int = sharedPreferences.getInt("record", 0)
@@ -26,6 +42,7 @@ class EndGameActivity : AppCompatActivity() {
         sharedPreferences.edit {
             if(record == 0 || pontuacao > record){
                 putInt("record", pontuacao)
+                putInt("level", level)
             }else{
                 binding.novoRecordText.visibility = View.GONE
                 binding.novoRecordImg.visibility = View.GONE
